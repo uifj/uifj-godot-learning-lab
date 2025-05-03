@@ -1,0 +1,118 @@
+[gd_scene load_steps=18 format=3 uid="uid://snx2v2kvy3kv"]
+
+[ext_resource type="Script" uid="uid://dokmtxkl41q60" path="res://player/player.gd" id="1_2ieo8"]
+[ext_resource type="Texture2D" uid="uid://emrkr7ylwmi0" path="res://assets/player/body.png" id="1_oul6g"]
+[ext_resource type="Texture2D" uid="uid://blkd03hetgcn3" path="res://assets/player/shadow.png" id="1_rkbax"]
+[ext_resource type="Script" uid="uid://cgx4cfteogcr3" path="res://player/player_state_machine.gd" id="1_yw30f"]
+[ext_resource type="Script" uid="uid://dp581sknri3lx" path="res://player/states/motion/on_ground/idle.gd" id="2_8t03j"]
+[ext_resource type="Script" uid="uid://qwey1ccycbmm" path="res://player/states/motion/on_ground/move.gd" id="3_2ieo8"]
+[ext_resource type="PackedScene" uid="uid://c41pxb4w7gdcq" path="res://player/weapon/sword.tscn" id="3_g1dw6"]
+[ext_resource type="Script" uid="uid://yjg0y7q0dt2h" path="res://player/states/motion/in_air/jump.gd" id="4_ebec5"]
+[ext_resource type="Script" uid="uid://jyrtm7jiha1a" path="res://player/states/combat/stagger.gd" id="5_yllr7"]
+[ext_resource type="Script" uid="uid://ostnwaxnj52o" path="res://player/states/combat/attack.gd" id="6_kb6p2"]
+[ext_resource type="Script" uid="uid://df7gj5qe4mtj0" path="res://player/states/die.gd" id="7_wodsf"]
+[ext_resource type="Script" uid="uid://618jsic52nbb" path="res://player/weapon/weapon_pivot.gd" id="11_ebec5"]
+
+[sub_resource type="Animation" id="Animation_g6k8r"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("BodyPivot/Body:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_g1dw6"]
+resource_name = "idle"
+step = 0.0333333
+
+[sub_resource type="Animation" id="Animation_yw30f"]
+resource_name = "stagger"
+length = 0.6
+step = 0.0333333
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("BodyPivot/Body:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 0, 0, 1), Color(1, 1, 1, 1), Color(1, 0, 0, 1), Color(1, 1, 1, 1), Color(1, 0, 0, 1), Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_qjkh3"]
+resource_name = "walk"
+step = 0.0333333
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_boad6"]
+_data = {
+&"RESET": SubResource("Animation_g6k8r"),
+&"idle": SubResource("Animation_g1dw6"),
+&"stagger": SubResource("Animation_yw30f"),
+&"walk": SubResource("Animation_qjkh3")
+}
+
+[node name="Player" type="CharacterBody2D"]
+position = Vector2(313, 321)
+script = ExtResource("1_2ieo8")
+
+[node name="StateMachine" type="Node" parent="."]
+script = ExtResource("1_yw30f")
+start_state = NodePath("Idle")
+
+[node name="Idle" type="Node" parent="StateMachine"]
+script = ExtResource("2_8t03j")
+
+[node name="Move" type="Node" parent="StateMachine"]
+script = ExtResource("3_2ieo8")
+
+[node name="Jump" type="Node" parent="StateMachine"]
+script = ExtResource("4_ebec5")
+
+[node name="Stagger" type="Node" parent="StateMachine"]
+script = ExtResource("5_yllr7")
+
+[node name="Attack" type="Node" parent="StateMachine"]
+script = ExtResource("6_kb6p2")
+
+[node name="Die" type="Node" parent="StateMachine"]
+script = ExtResource("7_wodsf")
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
+polygon = PackedVector2Array(-20, 0, -20, -20, 20, -20, 20, 0)
+
+[node name="Shadow" type="Sprite2D" parent="."]
+position = Vector2(0, 1)
+texture = ExtResource("1_rkbax")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_boad6")
+}
+
+[node name="BodyPivot" type="Marker2D" parent="."]
+
+[node name="Body" type="Sprite2D" parent="BodyPivot"]
+position = Vector2(0, -54)
+texture = ExtResource("1_oul6g")
+
+[node name="WeaponPivot" type="Marker2D" parent="BodyPivot"]
+position = Vector2(0, -58)
+script = ExtResource("11_ebec5")
+
+[node name="Offset" type="Marker2D" parent="BodyPivot/WeaponPivot"]
+position = Vector2(110, 0)
+
+[node name="Sword" parent="BodyPivot/WeaponPivot/Offset" instance=ExtResource("3_g1dw6")]
+
+[connection signal="state_changed" from="StateMachine" to="BodyPivot/WeaponPivot/Offset/Sword" method="_on_StateMachine_state_changed"]
+[connection signal="attack_finished" from="BodyPivot/WeaponPivot/Offset/Sword" to="StateMachine/Attack" method="_on_Sword_attack_finished"]
